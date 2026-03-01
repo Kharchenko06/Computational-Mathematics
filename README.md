@@ -1,2 +1,14 @@
-# Computational-Mathematics
-Laboratory work on the subject Computational Mathematics
+# Computational Mathematics
+
+Лабораторные работы по вычислительной математике.
+
+| Лаба | Тема | Ветка |
+|------|------|-------|
+| Lab 1 | Численное интегрирование ОДУ. Аттрактор Томаса | `lab-1` |
+| Lab 2 | — | `lab-2` |
+| Lab 3 | — | `lab-3` |
+
+## Как переключиться на нужную лабу
+```bash
+git checkout lab-1
+```
