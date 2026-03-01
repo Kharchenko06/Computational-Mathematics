@@ -1,2 +1,2 @@
-# ВычМат
-Лабы по ВычМат
+# Computational-Mathematics
+Laboratory work on the subject Computational Mathematics
