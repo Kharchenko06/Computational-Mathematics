@@ -21,7 +21,7 @@ def load_data(filename):
         print(f"Ошибка загрузки {filename}: {e}")
         return None, None, None, None
 
-# Загружаем данные (например, для RK4)
+# Загружаю данные (например, для RK4)
 t, x, y, z = load_data('rk4.csv')
 if t is None:
     exit(1)
@@ -32,7 +32,7 @@ time_norm = (t - t[0]) / (t[-1] - t[0])
 # Настройки крупных графиков
 plt.rcParams.update({'font.size': 14})   # увеличенный шрифт
 
-# Создаём фигуру с тремя подграфиками, большого размера
+# Создаю фигуру с тремя подграфиками, большого размера
 fig, axes = plt.subplots(1, 3, figsize=(24, 7))  # ширина 24 дюйма, высота 7
 fig.suptitle('Аттрактор Лоренца (σ=10, ρ=28, β=8/3)', fontsize=18)
 
@@ -54,7 +54,7 @@ cbar.ax.tick_params(labelsize=12)
 
 plt.tight_layout()
 
-# Сохраняем с высоким разрешением
+# Сохраняю с высоким разрешением
 out_path = os.path.join(DATA_DIR, 'attractor_large.png')
 plt.savefig(out_path, dpi=300, bbox_inches='tight')
 print(f"График сохранён: {out_path} (размер {24*300}x{7*300} пикселей)")
