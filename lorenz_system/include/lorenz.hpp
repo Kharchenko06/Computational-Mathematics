@@ -14,10 +14,10 @@ struct LorenzParams {
 using State = std::array<double, 3>;
 
 struct SolverResult {
-    std::vector<double> time;   // моменты времени
-    std::vector<State> states;  // траектория
-    double elapsed_ms;          // время счёта (ms)
-    size_t steps;               // число шагов
+    std::vector<double> t;  // моменты времени
+    std::vector<State> y;   // траектория
+    double elapsed_ms;      // время счёта (ms)
+    size_t steps;           // число шагов
 };
 
 // Правая часть: f(t, s) -> ds / dt

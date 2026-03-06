@@ -113,7 +113,7 @@ int main() {
     save_error_csv("error_rk38.csv", ref, sol38);
 
     std::cout << "\n>>> Адаптивный RK23 (rtol=1e-7, atol=1e-10)\n";
-    auto sol23 = rk23_intergrate(rhs, INIT_STATE, START_T, END_T, 1e-7, 1e-10);
+    auto sol23 = rk23_integrate(rhs, INIT_STATE, START_T, END_T, 1e-7, 1e-10);
     save_csv("rk23.csv", sol23);
     save_error_csv("error_rk23.csv", ref, sol23);
 

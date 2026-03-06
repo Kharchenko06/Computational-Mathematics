@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -O2 -Wall - Iinclude
+CXXFLAGS = -std=c++17 -O2 -Wall -Iinclude
 TARGET = lorenz_chaos
 SRCS = src/main.cpp src/lorenz.cpp \
 	   src/rk4.cpp src/rk38.cpp src/rk23.cpp
