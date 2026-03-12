@@ -10,7 +10,7 @@ State lorenz_rhs(double /* время здесь не используется *
 
     // Производные
     double dx = params.sigma * (state[1] - state[0]);
-    double dy = state[0] * (params.rho - state[2] - state[1]);
+    double dy = state[0] * (params.rho - state[2]) - state[1];
     double dz = state[0] * state[1] - params.beta * state[2];
 
     // Результат
