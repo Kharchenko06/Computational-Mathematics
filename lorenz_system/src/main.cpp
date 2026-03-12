@@ -29,27 +29,44 @@ double state_dist(const State& a, const State& b) {
     return std::sqrt(s);
 }
 
-// Сохраняем траекторию в CSV (папка data создаётся, если надо)
+// Сохраняем траекторию в CSV (папка data создается, если надо)
 void save_csv(const std::string& fname, const SolverResult& sol) {
     try {
         std::filesystem::create_directories("data");
         std::ofstream f("data/" + fname);
-        if (!f.is_open()) {
-            std::cerr << "Упс, не могу создать файл " << fname << std::endl;
-            return;
-        }
+        if (!f.is_open()) { std::cerr << "Не могу создать файл " << fname << "\n"; return; }
         f << std::fixed << std::setprecision(12);
         f << "t,x,y,z\n";
-        for (size_t i = 0; i < sol.t.size(); ++i) {
-            f << sol.t[i] << ","
-              << sol.y[i][0] << ","
-              << sol.y[i][1] << ","
-              << sol.y[i][2] << "\n";
-        }
+        for (size_t i = 0; i < sol.t.size(); ++i)
+            f << sol.t[i] << "," << sol.y[i][0] << "," << sol.y[i][1] << "," << sol.y[i][2] << "\n";
         std::cout << "Сохранено: " << fname << "\n";
     } catch (const std::exception& e) {
-        std::cerr << "Ошибка записи: " << e.what() << std::endl;
+        std::cerr << "Ошибка записи: " << e.what() << "\n";
     }
+}
+
+// Вычислим максимальную ошибку относительно эталона прямо в памяти
+// (линейная интерполяция эталона на сетку sol)
+double max_error(const SolverResult& ref, const SolverResult& sol) {
+    double max_e = 0.0;
+    size_t idx = 0;
+    for (size_t i = 0; i < sol.t.size(); ++i) {
+        double ti = sol.t[i];
+        while (idx + 1 < ref.t.size() && ref.t[idx + 1] <= ti) ++idx;
+        if (idx + 1 >= ref.t.size()) break;
+
+        double dt = ref.t[idx + 1] - ref.t[idx];
+        double alpha = (ti - ref.t[idx]) / dt;
+        if (alpha < 0.0 || alpha > 1.0) continue;
+
+        State ry;
+        for (int k = 0; k < 3; ++k)
+            ry[k] = ref.y[idx][k] * (1.0 - alpha) + ref.y[idx + 1][k] * alpha;
+
+        double e = state_dist(ry, sol.y[i]);
+        if (e > max_e) max_e = e;
+    }
+    return max_e;
 }
 
 // Считаем ошибку относительно эталона (линейная интерполяция, потому что эталон с мелким шагом)
@@ -70,7 +87,9 @@ void save_error_csv(const std::string& fname,
             while (idx + 1 < ref.t.size() && ref.t[idx + 1] <= ti) {
                 ++idx;
             }
-            if (idx + 1 >= ref.t.size()) break; // дальше не интерполировать
+            if (idx + 1 >= ref.t.size())
+                // дальше не интерполировать
+                break;
 
             double dt = ref.t[idx + 1] - ref.t[idx];
             double alpha = (ti - ref.t[idx]) / dt; // вес для правой точки
@@ -88,7 +107,7 @@ void save_error_csv(const std::string& fname,
             f << ti << "," << err << "\n";
         }
     } catch (...) {
-        std::cerr << "Что-то пошло не так при сохранении ошибки\n";
+        std::cerr << "Ошибка при сохранении ошибки\n";
     }
 }
 
@@ -117,23 +136,30 @@ int main() {
     save_csv("rk23.csv", sol23);
     save_error_csv("error_rk23.csv", ref, sol23);
 
-    // вывожу табличку с результатами
+    // Вычислим ошибку прямо здесь, а не пишем «(см. файлы)»
+    double e4  = max_error(ref, sol4);
+    double e38 = max_error(ref, sol38);
+    double e23 = max_error(ref, sol23);
+
     std::cout << "\n==========  РЕЗУЛЬТАТЫ  ==========\n";
-    std::cout << "Метод    |  шагов  | время (мс) | ошибка (max)\n";
-    std::cout << "---------|---------|------------|--------------\n";
+    std::cout << std::left
+              << std::setw(8)  << "Метод"   << " | "
+              << std::setw(7)  << "шагов"   << " | "
+              << std::setw(11) << "время(мс)"<< " | "
+              << "ошибка (max)\n";
+    std::cout << std::string(50, '-') << "\n";
 
     // функция для печати строки таблицы
-    auto print_row = [&](const std::string& name, const SolverResult& res) {
-        // ошибку пока не считываю, просто пишу прочерк
-        std::cout << std::left << std::setw(8) << name << " | "
-                  << std::setw(7) << res.steps << " | "
-                  << std::setw(10) << std::fixed << std::setprecision(3) << res.elapsed_ms << " | "
-                  << "(см. файлы)\n";
+    auto print_row = [&](const std::string& name, const SolverResult& res, double err) {
+        std::cout << std::left  << std::setw(8) << name << " | "
+                  << std::setw(7) << res.steps  << " | "
+                  << std::setw(11) << std::fixed << std::setprecision(3) << res.elapsed_ms << " | "
+                  << std::scientific << std::setprecision(3) << err << "\n";
     };
 
-    print_row("RK4", sol4);
-    print_row("RK38", sol38);
-    print_row("RK23", sol23);
+    print_row("RK4",  sol4,  e4);
+    print_row("RK38", sol38, e38);
+    print_row("RK23", sol23, e23);
 
     std::cout << "\nФайлы с траекториями и ошибками лежат в папке data/\n";
     return 0;
