@@ -4,7 +4,7 @@
 
 #include "rk23.hpp"
 #include <cmath>
-#include <ctime>
+#include <chrono>
 #include <algorithm>
 #include <functional>
 
@@ -12,12 +12,12 @@
 // где sc_i = atol + rtol * max(|y_i|, |yn_i|)
 static double error_norm(const State& err, const State& y,
                          const State& yn, double rtol, double atol)
-{
+{   
     double sum = 0.0;
     for (int i = 0; i < 3; ++i) {
         double sc = atol + rtol * std::max(std::abs(y[i]), std::abs(yn[i]));
         sum += (err[i] / sc) * (err[i] / sc);
-    }
+    }   
     return std::sqrt(sum / 3.0);
 }
 
@@ -82,7 +82,7 @@ AdaptiveResult rk23_integrate(std::function<State(double, const State&)> f,
 
     State k1 = f(t, y);             // первая производная (FSAL)
 
-    clock_t start = clock();
+    auto start = std::chrono::high_resolution_clock::now();
 
     while (t < t1) {
         // последний шаг не должен выходить за t1
@@ -119,8 +119,8 @@ AdaptiveResult rk23_integrate(std::function<State(double, const State&)> f,
         h = std::min(h * fac, h_max);
     }
 
-    clock_t end = clock();
-    res.elapsed_ms = double(end - start) * 1000.0 / CLOCKS_PER_SEC;
+    auto end = std::chrono::high_resolution_clock::now();
+    res.elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
 
     return res;
 }
