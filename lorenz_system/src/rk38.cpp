@@ -1,5 +1,5 @@
 #include "rk38.hpp"
-#include <ctime>
+#include <chrono>
 
 // один шаг метода Рунге-Кутты 3/8 (четвертого порядка)
 State rk38_step(std::function<State(double, const State&)> f,
@@ -61,7 +61,8 @@ SolverResult rk38_integrate(
 
     double t = t0;
     State y = y0;
-    clock_t start = clock();
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < steps; ++i) {
         y = rk38_step(f, t, y, dt);
@@ -71,8 +72,8 @@ SolverResult rk38_integrate(
         // шаги считаю автоматически
     }
 
-    clock_t end = clock();
-    res.elapsed_ms = double(end - start) * 1000.0 / CLOCKS_PER_SEC;
+    auto end = std::chrono::high_resolution_clock::now();
+    res.elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
     res.steps = steps;
 
     return res;

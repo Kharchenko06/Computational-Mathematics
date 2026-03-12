@@ -1,5 +1,5 @@
 #include "rk4.hpp"
-#include <ctime>
+#include <chrono>
 
 State rk4_step(std::function<State(double, const State&)> f,
                double t, const State& y, double h)
@@ -58,7 +58,8 @@ SolverResult rk4_integrate(std::function<State(double, const State&)> f,
 
     double t = t0;
     State y = y0;
-    clock_t start = clock();
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < n; ++i) {
         y = rk4_step(f, t, y, dt);
@@ -67,8 +68,8 @@ SolverResult rk4_integrate(std::function<State(double, const State&)> f,
         res.y.push_back(y);
     }
 
-    clock_t end = clock();
-    res.elapsed_ms = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC;
+    auto end = std::chrono::high_resolution_clock::now();
+    res.elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
     res.steps = n;
 
     return res;
