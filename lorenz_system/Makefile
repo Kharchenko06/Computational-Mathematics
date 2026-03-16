@@ -22,6 +22,7 @@ plot: run
 clean:
 	rm -f $(OBJS) $(TARGET)
 	-rm -rf data/ 2>/dev/null || true
+	-rm -rf python/__pycache__ 2>/dev/null || true
 	mkdir -p data 
 	touch data/.gitkeep
 

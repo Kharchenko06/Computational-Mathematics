@@ -1,7 +1,4 @@
 #pragma once
-// lorenz.hpp - описание системы Лоренца и общие типы
-// Источник: E.N. Lorenz (1963), Wikipedia: Lorenz system
-
 #include <array>
 #include <vector>
 
@@ -14,11 +11,10 @@ struct LorenzParams {
 using State = std::array<double, 3>;
 
 struct SolverResult {
-    std::vector<double> t;      // моменты времени
-    std::vector<State> y;       // траектория
-    double elapsed_ms = 0.0;    // время счёта (ms)
-    size_t steps = 0;           // число шагов
+    std::vector<double> t;
+    std::vector<State>  y;
+    double elapsed_ms = 0.0;
+    size_t steps = 0;
 };
 
-// Правая часть: f(t, s) -> ds / dt
 State lorenz_rhs(double t, const State& s, const LorenzParams& p);
