@@ -41,3 +41,7 @@
 *.dwo
 
 python/__pycache__/
+lorenz_chaos
+data/*.csv
+!data/.gitkeep
+src/*.o
