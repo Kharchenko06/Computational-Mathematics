@@ -121,34 +121,59 @@ Config from_file(const std::string& path) {
 
 //  Метрики ошибки
 
-struct ErrorMetrics { double abs_max, rel_max; };
-
-ErrorMetrics compute_errors(const SolverResult& ref, const SolverResult& sol) {
-    double abs_max = 0.0, rel_max = 0.0;
-    size_t idx = 0;
+struct ErrorMetrics {
+    double abs_mean;  // средняя абсолютная ошибка по всем точкам
+    double rel_mean;  // средняя относительная ошибка по всем точкам
+    double abs_max;   // максимальная (для справки)
+};
+ 
+// RK4 и RK38 имеют одинаковую сетку с эталоном — сравниваю напрямую
+// ошибка считается в одних и тех же t_i
+ErrorMetrics compute_errors_direct(const SolverResult& ref, const SolverResult& sol) {
+    double abs_sum = 0.0, rel_sum = 0.0, abs_max = 0.0;
+    size_t n = std::min(ref.t.size(), sol.t.size());
+    for (size_t i = 0; i < n; ++i) {
+        double diff = 0.0, ref_norm = 0.0;
+        for (int k = 0; k < 3; ++k) {
+            double d = sol.y[i][k] - ref.y[i][k];
+            diff     += d * d;
+            ref_norm += ref.y[i][k] * ref.y[i][k];
+        }
+        diff     = std::sqrt(diff);
+        ref_norm = std::sqrt(ref_norm);
+        abs_sum += diff;
+        abs_max  = std::max(abs_max, diff);
+        if (ref_norm > 1e-15) rel_sum += diff / ref_norm;
+    }
+    return {abs_sum / n, rel_sum / n, abs_max};
+}
+ 
+// RK23 — адаптивная сетка, интерполируем эталон на точки sol
+ErrorMetrics compute_errors_interp(const SolverResult& ref, const SolverResult& sol) {
+    double abs_sum = 0.0, rel_sum = 0.0, abs_max = 0.0;
+    size_t count = 0, idx = 0;
     for (size_t i = 0; i < sol.t.size(); ++i) {
         double ti = sol.t[i];
         while (idx + 1 < ref.t.size() && ref.t[idx + 1] <= ti) ++idx;
         if (idx + 1 >= ref.t.size()) break;
-
         double alpha = (ti - ref.t[idx]) / (ref.t[idx+1] - ref.t[idx]);
         if (alpha < 0.0 || alpha > 1.0) continue;
-
-        State ry; double ref_norm = 0.0;
+        double diff = 0.0, ref_norm = 0.0;
         for (int k = 0; k < 3; ++k) {
-            ry[k] = ref.y[idx][k]*(1.0-alpha) + ref.y[idx+1][k]*alpha;
-            ref_norm += ry[k]*ry[k];
+            double ry = ref.y[idx][k]*(1.0-alpha) + ref.y[idx+1][k]*alpha;
+            double d  = sol.y[i][k] - ry;
+            diff     += d * d;
+            ref_norm += ry * ry;
         }
+        diff     = std::sqrt(diff);
         ref_norm = std::sqrt(ref_norm);
-
-        double diff = 0.0;
-        for (int k = 0; k < 3; ++k) { double d = sol.y[i][k]-ry[k]; diff += d*d; }
-        diff = std::sqrt(diff);
-
-        abs_max = std::max(abs_max, diff);
-        if (ref_norm > 1e-15) rel_max = std::max(rel_max, diff/ref_norm);
+        abs_sum += diff;
+        abs_max  = std::max(abs_max, diff);
+        if (ref_norm > 1e-15) rel_sum += diff / ref_norm;
+        ++count;
     }
-    return {abs_max, rel_max};
+    if (count == 0) return {0, 0, 0};
+    return {abs_sum / count, rel_sum / count, abs_max};
 }
 
 void save_csv(const std::string& fname, const SolverResult& sol) {
@@ -162,34 +187,51 @@ void save_csv(const std::string& fname, const SolverResult& sol) {
     std::cout << "  saved: " << fname << "\n";
 }
 
-void save_error_csv(const std::string& fname,
-                    const SolverResult& ref, const SolverResult& sol)
+void save_error_csv_direct(const std::string& fname,
+                           const SolverResult& ref, const SolverResult& sol)
 {
     std::filesystem::create_directories("data");
     std::ofstream f("data/" + fname);
     if (!f.is_open()) return;
     f << "t,abs_error,rel_error\n";
-
+    size_t n = std::min(ref.t.size(), sol.t.size());
+    for (size_t i = 0; i < n; ++i) {
+        double diff = 0.0, ref_norm = 0.0;
+        for (int k = 0; k < 3; ++k) {
+            double d = sol.y[i][k] - ref.y[i][k];
+            diff     += d * d;
+            ref_norm += ref.y[i][k] * ref.y[i][k];
+        }
+        diff     = std::sqrt(diff);
+        ref_norm = std::sqrt(ref_norm);
+        f << sol.t[i] << "," << diff << ","
+          << (ref_norm > 1e-15 ? diff/ref_norm : 0.0) << "\n";
+    }
+}
+ 
+void save_error_csv_interp(const std::string& fname,
+                           const SolverResult& ref, const SolverResult& sol)
+{
+    std::filesystem::create_directories("data");
+    std::ofstream f("data/" + fname);
+    if (!f.is_open()) return;
+    f << "t,abs_error,rel_error\n";
     size_t idx = 0;
     for (size_t i = 0; i < sol.t.size(); ++i) {
         double ti = sol.t[i];
         while (idx + 1 < ref.t.size() && ref.t[idx+1] <= ti) ++idx;
         if (idx + 1 >= ref.t.size()) break;
-
         double alpha = (ti - ref.t[idx]) / (ref.t[idx+1] - ref.t[idx]);
         if (alpha < 0.0 || alpha > 1.0) continue;
-
-        State ry; double ref_norm = 0.0;
+        double diff = 0.0, ref_norm = 0.0;
         for (int k = 0; k < 3; ++k) {
-            ry[k] = ref.y[idx][k]*(1.0-alpha) + ref.y[idx+1][k]*alpha;
-            ref_norm += ry[k]*ry[k];
+            double ry = ref.y[idx][k]*(1.0-alpha) + ref.y[idx+1][k]*alpha;
+            double d  = sol.y[i][k] - ry;
+            diff     += d * d;
+            ref_norm += ry * ry;
         }
+        diff     = std::sqrt(diff);
         ref_norm = std::sqrt(ref_norm);
-
-        double diff = 0.0;
-        for (int k = 0; k < 3; ++k) { double d = sol.y[i][k]-ry[k]; diff += d*d; }
-        diff = std::sqrt(diff);
-
         f << ti << "," << diff << ","
           << (ref_norm > 1e-15 ? diff/ref_norm : 0.0) << "\n";
     }
@@ -236,44 +278,49 @@ int main(int argc, char* argv[]) {
     std::cout << "RK4 (h=" << cfg.h_rk4 << ")...\n";
     auto sol4 = rk4_integrate(rhs, cfg.y0, cfg.t_start, cfg.t_end, cfg.h_rk4);
     save_csv("rk4.csv", sol4);
-    save_error_csv("error_rk4.csv", ref, sol4);
-
+    save_error_csv_direct("error_rk4.csv", ref, sol4);
+ 
     std::cout << "RK3/8 (h=" << cfg.h_rk38 << ")...\n";
     auto sol38 = rk38_integrate(rhs, cfg.y0, cfg.t_start, cfg.t_end, cfg.h_rk38);
     save_csv("rk38.csv", sol38);
-    save_error_csv("error_rk38.csv", ref, sol38);
-
+    save_error_csv_direct("error_rk38.csv", ref, sol38);
+ 
     std::cout << "RK23 (rtol=" << cfg.rtol << ")...\n";
     auto sol23 = rk23_integrate(rhs, cfg.y0, cfg.t_start, cfg.t_end, cfg.rtol, cfg.atol);
     save_csv("rk23.csv", sol23);
-    save_error_csv("error_rk23.csv", ref, sol23);
-
-    auto m4  = compute_errors(ref, sol4);
-    auto m38 = compute_errors(ref, sol38);
-    auto m23 = compute_errors(ref, sol23);
+    save_error_csv_interp("error_rk23.csv", ref, sol23);
+ 
+    auto m4  = compute_errors_direct(ref, sol4);
+    auto m38 = compute_errors_direct(ref, sol38);
+    auto m23 = compute_errors_interp(ref, sol23);
 
     std::cout << "\n========== РЕЗУЛЬТАТЫ ==========\n";
     std::cout << std::left
-              << std::setw(7)  << "Метод"    << " | "
-              << std::setw(7)  << "шагов"    << " | "
-              << std::setw(10) << "время(мс)"<< " | "
-              << std::setw(12) << "abs (max)" << " | "
-              << "rel (max)\n"
-              << std::string(58, '-') << "\n";
+              << std::setw(7)  << "Метод"      << " | "
+              << std::setw(7)  << "шагов"      << " | "
+              << std::setw(12) << "время(мс)"  << " | "
+              << std::setw(12) << "abs_mean"   << " | "
+              << std::setw(12) << "rel_mean"   << " | "
+              << "abs_max\n"
+              << std::string(72, '-') << "\n";
 
     auto row = [](const std::string& name, const SolverResult& s, ErrorMetrics m) {
-        std::cout << std::scientific << std::setprecision(3);
-        std::cout << std::left << std::setw(7)  << name        << " | "
-                  << std::setw(7)  << s.steps                  << " | "
-                  << std::setw(12) << s.elapsed_ms             << " | "
-                  << std::setw(12) << m.abs_max                << " | "
-                  << m.rel_max << "\n";
+        std::cout << std::scientific << std::setprecision(3) << std::left
+                  << std::setw(7)  << name        << " | "
+                  << std::setw(7)  << s.steps     << " | "
+                  << std::setw(12) << s.elapsed_ms<< " | "
+                  << std::setw(12) << m.abs_mean  << " | "
+                  << std::setw(12) << m.rel_mean  << " | "
+                  << m.abs_max << "\n";
     };
 
     row("RK4",  sol4,  m4);
     row("RK38", sol38, m38);
     row("RK23", sol23, m23);
 
-    std::cout << "\nДанные сохранены в data/\n";
+    std::cout << "\n  abs_mean/rel_mean — средняя ошибка по всем точкам\n"
+              << "  RK4 и RK38: прямое сравнение в одних точках времени\n"
+              << "  RK23: интерполяция эталона на адаптивную сетку\n"
+              << "\nДанные сохранены в data/\n";
     return 0;
 }
