@@ -32,7 +32,7 @@ sudo apt install g++ make libgmp-dev   # Debian/Ubuntu
 ## Структура проекта
 
 ```
-task2_euclidean/
+precise-euclidean-dist/
 ├── README.md
 ├── Makefile
 ├── main.cpp                       CLI-точка входа
@@ -63,7 +63,7 @@ task2_euclidean/
 
 ## Сборка и запуск
 
-### Собрать всё
+### Собрать все
 
 ```bash
 make
