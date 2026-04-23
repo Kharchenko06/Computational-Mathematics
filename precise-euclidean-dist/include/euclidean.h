@@ -22,4 +22,4 @@ namespace euclidean {
     [[nodiscard]] std::string_view method_name(MultiplyMethod m) noexcept;
     [[nodiscard]] std::string_view method_name(SumMethod s) noexcept;
 
-} // namespace euclidean
+}
