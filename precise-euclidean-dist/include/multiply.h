@@ -24,4 +24,4 @@ namespace euclidean {
 	// Константа C = 2^27 + 1 (для p=53: s = ceil(53/2) = 27, C = 2^s + 1)
 	[[nodiscard]] DoublePair veltkamp_split(double x) noexcept;
 
-} // namespace euclidean
+}

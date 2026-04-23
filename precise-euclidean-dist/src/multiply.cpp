@@ -50,4 +50,4 @@ DoublePair ozaki_square(double x) noexcept {
     return DoublePair{ hi, lo };
 }
 
-} // namespace euclidean
+}
