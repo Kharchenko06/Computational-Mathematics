@@ -35,7 +35,7 @@ static void test_eft_property(const char* name,
     int pass = 0;
     for (double x : cases) {
         const euclidean::DoublePair r = fn(x);
-        const bool hi_ok = (r.hi == x * x);
+        const bool hi_ok   = (r.hi == x * x);
         const bool lo_small = (r.lo == 0.0 || std::abs(r.lo) < std::abs(r.hi));
         const bool ok = hi_ok && lo_small;
         std::printf("  x=%+.6e  hi=%+.6e  lo=%+.6e  %s\n",

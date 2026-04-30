@@ -3,6 +3,9 @@
 #include "compensated_sum.h"
 #include "sqrt_refined.h"
 
+#include <cassert>
+#include <vector>
+
 namespace euclidean {
 
 static DoublePair do_square(double v, MultiplyMethod m) noexcept {
@@ -14,46 +17,47 @@ static DoublePair do_square(double v, MultiplyMethod m) noexcept {
     return naive_square(v);
 }
 
-static CompensatedSum do_sum(DoublePair a, DoublePair b, DoublePair c,
+static CompensatedSum do_sum(std::span<const DoublePair> terms,
                               SumMethod sm) noexcept {
     switch (sm) {
-        case SumMethod::Naive:       return naive_sum(a, b, c);
-        case SumMethod::OgitaOishi:  return ogita_oishi_sum(a, b, c);
-        case SumMethod::KBN2:        return kbn2_sum(a, b, c);
-        case SumMethod::KBN3:        return kbn3_sum(a, b, c);
-        case SumMethod::KBN4:        return kbn4_sum(a, b, c);
+        case SumMethod::Naive:       return naive_sum(terms);
+        case SumMethod::OgitaOishi:  return ogita_oishi_sum(terms);
+        case SumMethod::KBN2:        return kbn2_sum(terms);
+        case SumMethod::KBN3:        return kbn3_sum(terms);
+        case SumMethod::KBN4:        return kbn4_sum(terms);
     }
-    return naive_sum(a, b, c);
+    return naive_sum(terms);
 }
 
-double euclidean_distance(const Point3D&  p1,
-                           const Point3D&  p2,
-                           MultiplyMethod  mul_method,
-                           SumMethod       sum_method) noexcept {
-    const double dx = p2.x - p1.x;
-    const double dy = p2.y - p1.y;
-    const double dz = p2.z - p1.z;
+double euclidean_distance(std::span<const double> a,
+                           std::span<const double> b,
+                           MultiplyMethod           mul_method,
+                           SumMethod                sum_method) noexcept {
+    assert(a.size() == b.size());
 
-    const DoublePair dx2 = do_square(dx, mul_method);
-    const DoublePair dy2 = do_square(dy, mul_method);
-    const DoublePair dz2 = do_square(dz, mul_method);
+    std::vector<DoublePair> squares(a.size());
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        const double d = b[i] - a[i];
+        squares[i] = do_square(d, mul_method);
+    }
 
-    const CompensatedSum cs = do_sum(dx2, dy2, dz2, sum_method);
+    const CompensatedSum cs = do_sum(squares, sum_method);
     return sqrt_refined(cs);
 }
 
-AllResults euclidean_all(const Point3D& p1, const Point3D& p2) noexcept {
+AllResults euclidean_all(std::span<const double> a,
+                          std::span<const double> b) noexcept {
     AllResults out;
-    const MultiplyMethod mul_methods[3] = {
+    constexpr MultiplyMethod mul_methods[3] = {
         MultiplyMethod::Naive, MultiplyMethod::FMA, MultiplyMethod::Ozaki
     };
-    const SumMethod sum_methods[5] = {
+    constexpr SumMethod sum_methods[5] = {
         SumMethod::Naive, SumMethod::OgitaOishi,
         SumMethod::KBN2,  SumMethod::KBN3, SumMethod::KBN4
     };
     for (int mi = 0; mi < 3; ++mi) {
         for (int si = 0; si < 5; ++si) {
-            out.data[mi][si] = euclidean_distance(p1, p2, mul_methods[mi], sum_methods[si]);
+            out.data[mi][si] = euclidean_distance(a, b, mul_methods[mi], sum_methods[si]);
         }
     }
     return out;

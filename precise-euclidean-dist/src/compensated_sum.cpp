@@ -23,15 +23,15 @@ DoublePair two_sum(double a, double b) noexcept {
     return DoublePair{ s, t };
 }
 
-// Суммирует 6 значений через каскад two_sum, собирая все ошибки в один член.
-static CompensatedSum vecsum6(double v0, double v1, double v2,
-                               double v3, double v4, double v5) noexcept {
-    double s = v0;
+// Суммирует произвольный набор double через каскад two_sum, собирая все ошибки в один член.
+static CompensatedSum vecsum(std::span<const double> vals) noexcept {
+    if (vals.empty()) {
+        return CompensatedSum{};
+    }
+    double s = vals[0];
     double e = 0.0;
-
-    const double vals[5] = { v1, v2, v3, v4, v5 };
-    for (double vi : vals) {
-        const DoublePair r = two_sum(s, vi);
+    for (std::size_t i = 1; i < vals.size(); ++i) {
+        const DoublePair r = two_sum(s, vals[i]);
         s = r.hi;
         e += r.lo;
     }
@@ -44,36 +44,45 @@ static CompensatedSum vecsum6(double v0, double v1, double v2,
     return result;
 }
 
-CompensatedSum naive_sum(DoublePair a, DoublePair b, DoublePair c) noexcept {
+CompensatedSum naive_sum(std::span<const DoublePair> terms) noexcept {
+    double s = 0.0;
+    for (const DoublePair& p : terms) {
+        s += p.hi;
+    }
     CompensatedSum result;
-    result.sum      = (a.hi + b.hi) + c.hi;
+    result.sum      = s;
     result.error[0] = 0.0;
     result.order    = 1;
     return result;
 }
 
-CompensatedSum ogita_oishi_sum(DoublePair a, DoublePair b, DoublePair c) noexcept {
+CompensatedSum ogita_oishi_sum(std::span<const DoublePair> terms) noexcept {
     // hi-члены первыми - они крупнее, это улучшает численную стабильность.
-    return vecsum6(a.hi, b.hi, c.hi, a.lo, b.lo, c.lo);
+    std::vector<double> flat;
+    flat.reserve(terms.size() * 2);
+    for (const DoublePair& p : terms) { flat.push_back(p.hi); }
+    for (const DoublePair& p : terms) { flat.push_back(p.lo); }
+    return vecsum(flat);
 }
 
-CompensatedSum kbn2_sum(DoublePair a, DoublePair b, DoublePair c) noexcept {
-    const double inputs[6] = { a.hi, b.hi, c.hi, a.lo, b.lo, c.lo };
-    double s = inputs[0];
+CompensatedSum kbn2_sum(std::span<const DoublePair> terms) noexcept {
+    double s    = 0.0;
     double comp = 0.0;
 
-    for (int i = 1; i < 6; ++i) {
-        const double xi = inputs[i];
-        const double t  = s + xi;
-        // Ветка зависит от того, что больше: сумма или новый элемент.
-        // Нейманн добавил вторую ветку - оригинальный Каhан её не имел.
+    // hi-члены, затем lo — тот же порядок, что в ogita_oishi
+    auto accumulate = [&](double xi) noexcept {
+        const double t = s + xi;
+        // Нейманн добавил вторую ветку — оригинальный Каhан её не имел.
         if (std::abs(s) >= std::abs(xi)) {
             comp += (s - t) + xi;
         } else {
             comp += (xi - t) + s;
         }
         s = t;
-    }
+    };
+
+    for (const DoublePair& p : terms) { accumulate(p.hi); }
+    for (const DoublePair& p : terms) { accumulate(p.lo); }
 
     CompensatedSum result;
     result.sum      = s;
@@ -82,8 +91,8 @@ CompensatedSum kbn2_sum(DoublePair a, DoublePair b, DoublePair c) noexcept {
     return result;
 }
 
-CompensatedSum kbn3_sum(DoublePair a, DoublePair b, DoublePair c) noexcept {
-    CompensatedSum pass1 = kbn2_sum(a, b, c);
+CompensatedSum kbn3_sum(std::span<const DoublePair> terms) noexcept {
+    CompensatedSum pass1 = kbn2_sum(terms);
     const DoublePair r = two_sum(pass1.sum, pass1.error[0]);
 
     CompensatedSum result;
@@ -94,8 +103,8 @@ CompensatedSum kbn3_sum(DoublePair a, DoublePair b, DoublePair c) noexcept {
     return result;
 }
 
-CompensatedSum kbn4_sum(DoublePair a, DoublePair b, DoublePair c) noexcept {
-    CompensatedSum pass1 = kbn2_sum(a, b, c);
+CompensatedSum kbn4_sum(std::span<const DoublePair> terms) noexcept {
+    CompensatedSum pass1 = kbn2_sum(terms);
     const DoublePair r2 = two_sum(pass1.sum, pass1.error[0]);
     const DoublePair r3 = two_sum(r2.hi, r2.lo);
 

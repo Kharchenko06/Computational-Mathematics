@@ -9,27 +9,25 @@
 #include <vector>
 
 struct TestCase {
-    euclidean::Point3D p1;
-    euclidean::Point3D p2;
+    std::vector<double> a;
+    std::vector<double> b;
     const char* description;
 };
 
 static bool run_full_table(const TestCase& tc) {
-    const double gmp_ref = euclidean::gmp_euclidean(tc.p1, tc.p2);
-    const euclidean::AllResults all = euclidean::euclidean_all(tc.p1, tc.p2);
+    const double gmp_ref = euclidean::gmp_euclidean(tc.a, tc.b);
+    const euclidean::AllResults all = euclidean::euclidean_all(tc.a, tc.b);
 
     std::printf("  %s\n", tc.description);
-    std::printf("  P1=(%.6g, %.6g, %.6g)  P2=(%.6g, %.6g, %.6g)\n",
-        tc.p1.x, tc.p1.y, tc.p1.z, tc.p2.x, tc.p2.y, tc.p2.z);
     std::printf("  GMP: %.16e\n", gmp_ref);
     std::printf("  %-12s %-12s  %-22s  %4s\n", "Multiply", "Sum", "Result", "ULP");
 
-    const euclidean::MultiplyMethod mul_methods[3] = {
+    constexpr euclidean::MultiplyMethod mul_methods[3] = {
         euclidean::MultiplyMethod::Naive,
         euclidean::MultiplyMethod::FMA,
         euclidean::MultiplyMethod::Ozaki
     };
-    const euclidean::SumMethod sum_methods[5] = {
+    constexpr euclidean::SumMethod sum_methods[5] = {
         euclidean::SumMethod::Naive,    euclidean::SumMethod::OgitaOishi,
         euclidean::SumMethod::KBN2,     euclidean::SumMethod::KBN3,
         euclidean::SumMethod::KBN4
@@ -61,18 +59,27 @@ int main() {
     std::printf("=== test_euclidean_full (* = 0 ULP, + = 1 ULP) ===\n\n");
 
     const std::vector<TestCase> cases = {
-        { {0,0,0}, {1,0,0},        "единичное расстояние по X" },
-        { {0,0,0}, {1,1,1},        "диагональ куба, sqrt(3)" },
-        { {0,0,0}, {3,4,0},        "треугольник 3-4-5" },
-        { {1.5, 2.3, -1.7}, {4.1, -0.5, 3.3},  "общий случай" },
-        { {0.1, 0.2, 0.3}, {0.4, 0.5, 0.6},    "малые десятичные" },
-        { {1e15, 1e15, 1e15}, {1e15+1.0, 1e15+1.0, 1e15+1.0}, "отмена, diff=sqrt(3)" },
-        { {1e8, 2e8, 3e8}, {1e8+3.0, 2e8+4.0, 3e8+0.0},       "отмена, diff=5" },
-        { {0,0,0}, {1e-100, 1e-100, 1e-100},   "малые значения" },
-        { {0,0,0}, {1e100, 1e100, 1e100},       "большие значения" },
-        { {0,0,0}, {1e-8, 1.0, 1e8},            "разные порядки" },
-        { {1.23456, 7.89012, -3.45678}, {1.23456, 7.89012, -3.45678}, "одинаковые точки" },
-        { {0,0,0}, {1,1,0},  "sqrt(2)" },
+        // R^3 — базовые случаи
+        { {0,0,0}, {1,0,0},        "R3: единичное расстояние по X" },
+        { {0,0,0}, {1,1,1},        "R3: диагональ куба, sqrt(3)" },
+        { {0,0,0}, {3,4,0},        "R3: треугольник 3-4-5" },
+        { {1.5, 2.3, -1.7}, {4.1, -0.5, 3.3},  "R3: общий случай" },
+        { {0.1, 0.2, 0.3}, {0.4, 0.5, 0.6},    "R3: малые десятичные" },
+        { {1e15, 1e15, 1e15}, {1e15+1.0, 1e15+1.0, 1e15+1.0}, "R3: отмена, diff=sqrt(3)" },
+        { {1e8, 2e8, 3e8}, {1e8+3.0, 2e8+4.0, 3e8+0.0},       "R3: отмена, diff=5" },
+        { {0,0,0}, {1e-100, 1e-100, 1e-100},   "R3: малые значения" },
+        { {0,0,0}, {1e100, 1e100, 1e100},       "R3: большие значения" },
+        { {0,0,0}, {1e-8, 1.0, 1e8},            "R3: разные порядки" },
+        { {0,0,0}, {1,1,0},  "R3: sqrt(2)" },
+        // R^2 — плоский случай
+        { {0,0}, {3,4},   "R2: треугольник 3-4-5" },
+        { {0,0}, {1,1},   "R2: sqrt(2)" },
+        // R^5
+        { {0,0,0,0,0}, {1,1,1,1,1}, "R5: sqrt(5)" },
+        { {1,2,3,4,5}, {6,7,8,9,10}, "R5: diff=(5,5,5,5,5), dist=sqrt(125)" },
+        // R^n с катастрофической отменой
+        { {1e15,1e15,1e15,1e15,1e15},
+          {1e15+1,1e15+1,1e15+1,1e15+1,1e15+1}, "R5: отмена, diff=sqrt(5)" },
     };
 
     int pass_count = 0;

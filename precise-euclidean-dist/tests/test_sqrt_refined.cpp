@@ -9,30 +9,27 @@
 #include <vector>
 
 struct TestCase {
-    euclidean::Point3D p1;
-    euclidean::Point3D p2;
+    std::vector<double> a;
+    std::vector<double> b;
     const char* description;
 };
 
 static void run_sqrt_comparison(const TestCase& tc) {
-    const double dx = tc.p2.x - tc.p1.x;
-    const double dy = tc.p2.y - tc.p1.y;
-    const double dz = tc.p2.z - tc.p1.z;
+    std::vector<euclidean::DoublePair> squares(tc.a.size());
+    for (std::size_t i = 0; i < tc.a.size(); ++i) {
+        const double d = tc.b[i] - tc.a[i];
+        squares[i] = euclidean::fma_square(d);
+    }
 
-    const euclidean::CompensatedSum cs = euclidean::kbn4_sum(
-        euclidean::fma_square(dx),
-        euclidean::fma_square(dy),
-        euclidean::fma_square(dz)
-    );
+    const euclidean::CompensatedSum cs = euclidean::kbn4_sum(squares);
 
     const double r_naive   = euclidean::sqrt_naive(cs);
     const double r_refined = euclidean::sqrt_refined(cs);
-    const double r_ref     = euclidean::gmp_euclidean(tc.p1, tc.p2);
+    const double r_ref     = euclidean::gmp_euclidean(tc.a, tc.b);
 
-    const std::int64_t ulp_naive   = euclidean::ulp_error(r_naive, r_ref);
+    const std::int64_t ulp_naive   = euclidean::ulp_error(r_naive,   r_ref);
     const std::int64_t ulp_refined = euclidean::ulp_error(r_refined, r_ref);
 
-    // Считаем тест пройденным если refined <= 1 ULP
     const char* status = (ulp_refined <= 1) ? "PASS" : "FAIL";
     std::printf("  [%s] %s\n", status, tc.description);
     std::printf("    naive:   %.16e  (ULP=%lld)\n", r_naive,   static_cast<long long>(ulp_naive));
@@ -51,6 +48,8 @@ int main() {
         { {1e-100, 0, 0}, {2e-100, 0, 0},  "very small values" },
         { {0,0,0}, {1e150, 1e150, 1e150},  "very large values" },
         { {0,0,0}, {1.0, std::sqrt(3.0), 0}, "sum = 4.0 exactly" },
+        // R^5 — нетривиальная размерность
+        { {1,2,3,4,5}, {6,7,8,9,10}, "R^5 general" },
     };
 
     for (const auto& tc : cases) {

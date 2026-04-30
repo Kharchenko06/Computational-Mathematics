@@ -2,10 +2,11 @@
 #  High-Precision Euclidean Distance (IEEE 754 Double)
 #
 #  Команды:
-#    make          - собрать все
-#    make run      - собрать и запустить все тесты
-#    make demo     - запустить CLI с примером (3-4-5 треугольник)
-#    make clean    - удалить все артефакты сборки
+#    make           - собрать все
+#    make run       - собрать и запустить все тесты
+#    make demo      - запустить CLI (3-4-5 треугольник, R^3)
+#    make demo-file - запустить CLI с чтением из файла (R^5 пример)
+#    make clean     - удалить все артефакты сборки
 
 CXX      := g++
 CXXFLAGS := -std=c++20 -Wall -Wextra -Wpedantic -O2 \
@@ -41,7 +42,10 @@ TEST_BINS := $(patsubst $(TEST_DIR)/%.cpp, $(BUILD_DIR)/%, $(TEST_SRCS))
 
 ALL_BINS  := $(MAIN_BIN) $(TEST_BINS)
 
-.PHONY: all run demo clean
+# Временный файл для demo-file; удаляется после запуска
+DEMO_INPUT := $(BUILD_DIR)/demo_input.txt
+
+.PHONY: all run demo demo-file clean
 
 all: $(BUILD_DIR) $(ALL_BINS)
 
@@ -90,12 +94,19 @@ run: all
 
 demo: $(MAIN_BIN)
 	@echo ""
-	@echo ">>> 3-4-5 triangle: P1=(0,0,0) P2=(3,4,0), expected dist=5"
+	@echo ">>> 3-4-5 triangle: A=(0,0,0) B=(3,4,0), expected dist=5"
 	@$(MAIN_BIN) 0 0 0 3 4 0
 	@echo ""
-	@echo ">>> Cancellation: P1=(1e15,1e15,1e15) P2=(1e15+1, ...), expected dist=sqrt(3)"
+	@echo ">>> Cancellation: A=(1e15,1e15,1e15) B=(1e15+1,...), expected dist=sqrt(3)"
 	@$(MAIN_BIN) 1000000000000000 1000000000000000 1000000000000000 \
 	             1000000000000001 1000000000000001 1000000000000001
+
+demo-file: $(MAIN_BIN) | $(BUILD_DIR)
+	@printf '5\n1 2 3 4 5\n6 7 8 9 10\n' > $(DEMO_INPUT)
+	@echo ""
+	@echo ">>> R^5: A=(1,2,3,4,5) B=(6,7,8,9,10), expected dist=sqrt(125)~=11.180..."
+	@$(MAIN_BIN) --file $(DEMO_INPUT)
+	@rm -f $(DEMO_INPUT)
 
 clean:
 	rm -rf $(BUILD_DIR)
