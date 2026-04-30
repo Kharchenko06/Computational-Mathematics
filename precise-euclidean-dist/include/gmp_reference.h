@@ -3,12 +3,13 @@
 // Ёталонный расчет через GMP mpf_t с точностью 256 бит
 // 256 выбрано как запас чтобы ошибка была сильно меньше double
 
-#include "types.h"
+#include <span>
 
 namespace euclidean {
 
-	// ¬озвращает результат sqrt(dx^2+dy^2+dz^2)
-	// используетс€ как эталон высокой точности
-	[[nodiscard]] double gmp_euclidean(const Point3D& p1, const Point3D& p2);
+	// ¬озвращает sqrt(sum((b[i]-a[i])^2)) дл€ векторов произвольной длины.
+	// –азмерности a и b должны совпадать.
+	[[nodiscard]] double gmp_euclidean(std::span<const double> a,
+		std::span<const double> b);
 
 }
