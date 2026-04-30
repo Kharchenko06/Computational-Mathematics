@@ -8,14 +8,12 @@
 
 #include <array>
 #include <cstddef>
+#include <vector>
 
 namespace euclidean {
 
-    struct Point3D {
-        double x{ 0.0 };
-        double y{ 0.0 };
-        double z{ 0.0 };
-    };
+    // Точка в R^n; владеет координатами
+    using Point = std::vector<double>;
 
     // EFT-результат (Error-Free Transformation): V = hi + lo точно
     // hi = fl(V), lo = ошибка округления
