@@ -8,7 +8,7 @@
 
 #include <array>
 #include <cstddef>
-#include <vector>
+#include <vector>   
 
 namespace euclidean {
 
