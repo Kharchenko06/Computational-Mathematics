@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 // Пять алгоритмов суммирования n пар DoublePair.
 // Handbook of Floating-Point Arithmetic: §4.3.1, §4.3.2, §6.3.2
@@ -9,17 +9,17 @@
 
 namespace euclidean {
 
-	namespace detail {
+namespace detail {
 
-	    // fast2sum требует |a| >= |b| (Handbook §4.3.1, Alg. 4.3).
-	    // Возвращает (hi, lo): hi + lo = a + b точно.
-	    [[nodiscard]] DoublePair fast2sum(double a, double b) noexcept;
+	// fast2sum требует |a| >= |b| (Handbook §4.3.1, Alg. 4.3).
+	// Возвращает (hi, lo): hi + lo = a + b точно.
+	[[nodiscard]] DoublePair fast2sum(double a, double b) noexcept;
 
-	    // two_sum без ограничений на порядок, 6 FP-операций (Handbook §4.3.2, Alg. 4.4).
-	    // Возвращает (hi, lo): hi + lo = a + b точно.
-	    [[nodiscard]] DoublePair two_sum(double a, double b) noexcept;
+	// two_sum без ограничений на порядок, 6 FP-операций (Handbook §4.3.2, Alg. 4.4).
+	// Возвращает (hi, lo): hi + lo = a + b точно.
+	[[nodiscard]] DoublePair two_sum(double a, double b) noexcept;
 
-	}
+}
 
     // Наивное суммирование только hi-членов, lo игнорируются.
     [[nodiscard]] CompensatedSum<1> naive_sum(std::span<const DoublePair> terms) noexcept;
