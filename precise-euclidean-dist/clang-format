@@ -1,0 +1,33 @@
+Language: Cpp
+Standard: c++20
+
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+ColumnLimit: 100
+
+# Выравнивание
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignTrailingComments: true
+
+# Фигурные скобки
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+
+# Пространства имен — без отступа содержимого
+NamespaceIndentation: None
+CompactNamespaces: false
+
+# Включения
+SortIncludes: false
+
+# Указатели и ссылки — прижаты к типу
+PointerAlignment: Left
+
+# Инициализаторы
+BreakConstructorInitializers: BeforeColon
+PackConstructorInitializers: Never

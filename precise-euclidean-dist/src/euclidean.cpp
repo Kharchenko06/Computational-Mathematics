@@ -17,36 +17,30 @@ static DoublePair do_square(double v, MultiplyMethod m) noexcept {
     return naive_square(v);
 }
 
-static CompensatedSum do_sum(std::span<const DoublePair> terms,
-                              SumMethod sm) noexcept {
-    switch (sm) {
-        case SumMethod::Naive:       return naive_sum(terms);
-        case SumMethod::OgitaOishi:  return ogita_oishi_sum(terms);
-        case SumMethod::KBN2:        return kbn2_sum(terms);
-        case SumMethod::KBN3:        return kbn3_sum(terms);
-        case SumMethod::KBN4:        return kbn4_sum(terms);
-    }
-    return naive_sum(terms);
-}
-
 double euclidean_distance(std::span<const double> a,
                            std::span<const double> b,
-                           MultiplyMethod           mul_method,
-                           SumMethod                sum_method) noexcept {
+                           MultiplyMethod mul_method,
+                           SumMethod sum_method) {
     assert(a.size() == b.size());
 
     std::vector<DoublePair> squares(a.size());
     for (std::size_t i = 0; i < a.size(); ++i) {
-        const double d = b[i] - a[i];
-        squares[i] = do_square(d, mul_method);
+        squares[i] = do_square(b[i] - a[i], mul_method);
     }
 
-    const CompensatedSum cs = do_sum(squares, sum_method);
-    return sqrt_refined(cs);
+    // sqrt_refined инстанцируется под конкретный Order каждой ветки
+    switch (sum_method) {
+        case SumMethod::Naive:      return sqrt_refined(naive_sum(squares));
+        case SumMethod::OgitaOishi: return sqrt_refined(ogita_oishi_sum(squares));
+        case SumMethod::KBN2:       return sqrt_refined(kbn2_sum(squares));
+        case SumMethod::KBN3:       return sqrt_refined(kbn3_sum(squares));
+        case SumMethod::KBN4:       return sqrt_refined(kbn4_sum(squares));
+    }
+    return sqrt_refined(naive_sum(squares));
 }
 
 AllResults euclidean_all(std::span<const double> a,
-                          std::span<const double> b) noexcept {
+                          std::span<const double> b) {
     AllResults out;
     constexpr MultiplyMethod mul_methods[3] = {
         MultiplyMethod::Naive, MultiplyMethod::FMA, MultiplyMethod::Ozaki

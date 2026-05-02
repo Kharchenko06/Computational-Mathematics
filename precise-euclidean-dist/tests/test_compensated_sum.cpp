@@ -7,9 +7,11 @@
 #include <cstdio>
 #include <vector>
 
-static double total(const euclidean::CompensatedSum& cs) {
+// Суммирует все члены CompensatedSum<Order> для сравнения с эталоном
+template<int Order>
+static double total(const euclidean::CompensatedSum<Order>& cs) {
     double s = cs.sum;
-    for (int i = 0; i < cs.order - 1; ++i) {
+    for (int i = 0; i < Order - 1; ++i) {
         s += cs.error[i];
     }
     return s;
@@ -23,7 +25,7 @@ static void test_two_sum_primitive() {
     };
     int pass = 0;
     for (auto [a, b] : cases) {
-        const euclidean::DoublePair r = euclidean::two_sum(a, b);
+        const euclidean::DoublePair r = euclidean::detail::two_sum(a, b);
         const bool ok = (r.hi == a + b);
         std::printf("  two_sum(%+.3e, %+.3e) -> hi=%+.6e lo=%+.6e  %s\n",
             a, b, r.hi, r.lo, ok ? "PASS" : "FAIL");
@@ -46,28 +48,25 @@ static void test_sum_algorithms() {
     const double ref_dist = euclidean::gmp_euclidean(va, vb);
     const double ref_sum  = ref_dist * ref_dist;
 
-    const euclidean::CompensatedSum results[5] = {
-        euclidean::naive_sum(squares),
-        euclidean::ogita_oishi_sum(squares),
-        euclidean::kbn2_sum(squares),
-        euclidean::kbn3_sum(squares),
-        euclidean::kbn4_sum(squares)
-    };
-    const char* names[5] = {
-        "naive      ", "ogita_oishi", "kbn2       ", "kbn3       ", "kbn4       "
-    };
-    for (int i = 0; i < 5; ++i) {
-        const double t = total(results[i]);
+    // Каждый алгоритм возвращает CompensatedSum<N> своего порядка
+    auto run = [&](auto cs, const char* name) {
+        const double t = total(cs);
         const std::int64_t ulps = euclidean::ulp_error(t, ref_sum);
         std::printf("  %s: sum=%.16e  error[0]=%.6e  ULP=%lld\n",
-            names[i], results[i].sum, results[i].error[0],
+            name, cs.sum, cs.error.empty() ? 0.0 : cs.error[0],
             static_cast<long long>(ulps));
-    }
+    };
+
+    run(euclidean::naive_sum(squares),       "naive      ");
+    run(euclidean::ogita_oishi_sum(squares),  "ogita_oishi");
+    run(euclidean::kbn2_sum(squares),         "kbn2       ");
+    run(euclidean::kbn3_sum(squares),         "kbn3       ");
+    run(euclidean::kbn4_sum(squares),         "kbn4       ");
     std::printf("\n");
 }
 
 static void test_catastrophic_cancellation() {
-    std::printf("=== Катастрофическая отмена: ожидаем сумму квадратов = 3.0 ===\n");
+    std::printf("=== Катастрофическое сокращение: ожидаем сумму квадратов = 3.0 ===\n");
     const std::vector<double> va = {1e15, 1e15, 1e15};
     const std::vector<double> vb = {1e15 + 1.0, 1e15 + 1.0, 1e15 + 1.0};
 
@@ -79,22 +78,21 @@ static void test_catastrophic_cancellation() {
     const double ref = euclidean::gmp_euclidean(va, vb);
     std::printf("  GMP ref: %.16e\n", ref);
 
-    const euclidean::CompensatedSum results[5] = {
-        euclidean::naive_sum(squares),      euclidean::ogita_oishi_sum(squares),
-        euclidean::kbn2_sum(squares),       euclidean::kbn3_sum(squares),
-        euclidean::kbn4_sum(squares)
-    };
-    const char* names[5] = { "naive", "ogita_oishi", "kbn2", "kbn3", "kbn4" };
-    for (int i = 0; i < 5; ++i) {
-        const double t = total(results[i]);
+    auto run = [&](auto cs, const char* name) {
+        const double t = total(cs);
         const std::int64_t ulps = euclidean::ulp_error(t, 3.0);
         std::printf("  %s: total=%.16e  ULP vs 3.0=%lld\n",
-            names[i], t, static_cast<long long>(ulps));
-    }
+            name, t, static_cast<long long>(ulps));
+    };
+
+    run(euclidean::naive_sum(squares),       "naive      ");
+    run(euclidean::ogita_oishi_sum(squares),  "ogita_oishi");
+    run(euclidean::kbn2_sum(squares),         "kbn2       ");
+    run(euclidean::kbn3_sum(squares),         "kbn3       ");
+    run(euclidean::kbn4_sum(squares),         "kbn4       ");
     std::printf("\n");
 }
 
-// Дополнительный тест: большая размерность — 100 единичных компонент, ожидаем sqrt(100)=10
 static void test_large_dimension() {
     std::printf("=== R^100: sum of 100 ones, expected dist = 10.0 ===\n");
     constexpr int N = 100;
@@ -106,22 +104,20 @@ static void test_large_dimension() {
     const std::vector<double> va(N, 0.0);
     const std::vector<double> vb(N, 1.0);
     const double ref = euclidean::gmp_euclidean(va, vb);
-
-    const euclidean::CompensatedSum results[5] = {
-        euclidean::naive_sum(squares),
-        euclidean::ogita_oishi_sum(squares),
-        euclidean::kbn2_sum(squares),
-        euclidean::kbn3_sum(squares),
-        euclidean::kbn4_sum(squares)
-    };
-    const char* names[5] = { "naive", "ogita_oishi", "kbn2", "kbn3", "kbn4" };
     std::printf("  GMP ref: %.16e\n", ref);
-    for (int i = 0; i < 5; ++i) {
-        const double t = total(results[i]);
+
+    auto run = [&](auto cs, const char* name) {
+        const double t = total(cs);
         const std::int64_t ulps = euclidean::ulp_error(t, ref * ref);
         std::printf("  %s: total=%.16e  ULP=%lld\n",
-            names[i], t, static_cast<long long>(ulps));
-    }
+            name, t, static_cast<long long>(ulps));
+    };
+
+    run(euclidean::naive_sum(squares),       "naive      ");
+    run(euclidean::ogita_oishi_sum(squares),  "ogita_oishi");
+    run(euclidean::kbn2_sum(squares),         "kbn2       ");
+    run(euclidean::kbn3_sum(squares),         "kbn3       ");
+    run(euclidean::kbn4_sum(squares),         "kbn4       ");
     std::printf("\n");
 }
 

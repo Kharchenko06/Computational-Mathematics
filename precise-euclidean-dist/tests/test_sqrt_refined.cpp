@@ -21,7 +21,8 @@ static void run_sqrt_comparison(const TestCase& tc) {
         squares[i] = euclidean::fma_square(d);
     }
 
-    const euclidean::CompensatedSum cs = euclidean::kbn4_sum(squares);
+    // kbn4_sum возвращает CompensatedSum<4> — тип выводится автоматически
+    const auto cs = euclidean::kbn4_sum(squares);
 
     const double r_naive   = euclidean::sqrt_naive(cs);
     const double r_refined = euclidean::sqrt_refined(cs);
@@ -48,7 +49,6 @@ int main() {
         { {1e-100, 0, 0}, {2e-100, 0, 0},  "very small values" },
         { {0,0,0}, {1e150, 1e150, 1e150},  "very large values" },
         { {0,0,0}, {1.0, std::sqrt(3.0), 0}, "sum = 4.0 exactly" },
-        // R^5 — нетривиальная размерность
         { {1,2,3,4,5}, {6,7,8,9,10}, "R^5 general" },
     };
 
