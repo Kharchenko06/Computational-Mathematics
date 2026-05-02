@@ -11,9 +11,11 @@ double collect_error(const CompensatedSum& cs) noexcept {
     if (cs.order <= 1) {
         return 0.0;
     }
-    double e = cs.error[0];
-    for (int i = 1; i < cs.order - 1; ++i) {
-        e += cs.error[i];   // суммируем хвост ошибки
+    // error[0] - наибольший член, error[order-2] - наименьший
+    // Суммируем от наименьшего к большему, чтобы снизить ошибку округления накопления
+    double e = 0.0;
+    for (int i = cs.order - 2, i >= 0; --i) {
+        e += cs.error[i];
     }
     return e;
 }
