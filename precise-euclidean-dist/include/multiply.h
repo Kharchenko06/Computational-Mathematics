@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // Три алгоритма вычисления x*x с точным членом ошибки.
 // Все три возвращают DoublePair (hi, lo): hi + lo = x*x точно, hi = fl(x*x).

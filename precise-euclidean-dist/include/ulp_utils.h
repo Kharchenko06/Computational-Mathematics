@@ -1,8 +1,8 @@
-#pragma once
+п»ї#pragma once
 
-// ULP (Unit in the Last Place) по Голдбергу: ulp(x) = 2^(e-p+1)
-// e - показатель степени x, p=53 для double
-// Совпадает с std::numeric_limits<double>::epsilon() = 2^-52 (Handbook §2.6)
+// ULP (Unit in the Last Place) РїРѕ Р“РѕР»РґР±РµСЂРіСѓ: ulp(x) = 2^(e-p+1)
+// e - РїРѕРєР°Р·Р°С‚РµР»СЊ СЃС‚РµРїРµРЅРё x, p=53 РґР»СЏ double
+// РЎРѕРІРїР°РґР°РµС‚ СЃ std::numeric_limits<double>::epsilon() = 2^-52 (Handbook В§2.6)
 
 #include <cmath>
 #include <cstdint>
@@ -10,18 +10,18 @@
 
 namespace euclidean {
 
-	// ulp(0) не определен - возвращаем denorm_min
-	// для NaN/Inf возвращаем сам аргумент без изменений
+	// ulp(0) РЅРµ РѕРїСЂРµРґРµР»РµРЅ - РІРѕР·РІСЂР°С‰Р°РµРј denorm_min
+	// РґР»СЏ NaN/Inf РІРѕР·РІСЂР°С‰Р°РµРј СЃР°Рј Р°СЂРіСѓРјРµРЅС‚ Р±РµР· РёР·РјРµРЅРµРЅРёР№
 	[[nodiscard]] double ulp(double x) noexcept;
 
-	// Знаковое расстояние от a до b в единицах ULP.
+	// Р—РЅР°РєРѕРІРѕРµ СЂР°СЃСЃС‚РѕСЏРЅРёРµ РѕС‚ a РґРѕ b РІ РµРґРёРЅРёС†Р°С… ULP.
 	// ulp_distance(+0, -0) == 0
 	// ulp_distance(NaN, any) == INT64_MAX
 	[[nodiscard]] std::int64_t ulp_distance(double a, double b) noexcept;
 
 	[[nodiscard]] std::int64_t ulp_error(double computed, double reference) noexcept;
 
-	// Возвращает сырой битовый шаблон IEEE 754 - удобно при отладке округлений
+	// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃС‹СЂРѕР№ Р±РёС‚РѕРІС‹Р№ С€Р°Р±Р»РѕРЅ IEEE 754 - СѓРґРѕР±РЅРѕ РїСЂРё РѕС‚Р»Р°РґРєРµ РѕРєСЂСѓРіР»РµРЅРёР№
 	[[nodiscard]] std::uint64_t bits(double x) noexcept;
 
 	[[nodiscard]] double next_up(double x) noexcept;
