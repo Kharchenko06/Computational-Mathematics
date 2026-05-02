@@ -11,9 +11,7 @@
 #include <cstdio>
 #include <vector>
 
-// Все 6 перестановок индексов {0,1,2} для R^3; для R^n тест инвариантности
-// проверяется перебором всех n! перестановок — здесь ограничиваемся n<=3 для полного перебора,
-// для больших n используем случайную выборку перестановок.
+// Все 6 перестановок индексов {0,1,2} для R^3
 static const std::array<std::array<int,3>, 6> PERMS3 = {{
     {0,1,2}, {0,2,1}, {1,0,2}, {1,2,0}, {2,0,1}, {2,1,0}
 }};
@@ -21,35 +19,33 @@ static const std::array<std::array<int,3>, 6> PERMS3 = {{
 static double dist_permuted3(const std::vector<double>& deltas,
                               const std::array<int,3>& perm,
                               euclidean::MultiplyMethod mm,
-                              euclidean::SumMethod sm) noexcept {
-    const euclidean::DoublePair sq[3] = {
-        [&]{ switch(mm) {
-            case euclidean::MultiplyMethod::Naive:  return euclidean::naive_square(deltas[perm[0]]);
-            case euclidean::MultiplyMethod::FMA:    return euclidean::fma_square(deltas[perm[0]]);
-            case euclidean::MultiplyMethod::Ozaki:  return euclidean::ozaki_square(deltas[perm[0]]);
-        } return euclidean::naive_square(deltas[perm[0]]); }(),
-        [&]{ switch(mm) {
-            case euclidean::MultiplyMethod::Naive:  return euclidean::naive_square(deltas[perm[1]]);
-            case euclidean::MultiplyMethod::FMA:    return euclidean::fma_square(deltas[perm[1]]);
-            case euclidean::MultiplyMethod::Ozaki:  return euclidean::ozaki_square(deltas[perm[1]]);
-        } return euclidean::naive_square(deltas[perm[1]]); }(),
-        [&]{ switch(mm) {
-            case euclidean::MultiplyMethod::Naive:  return euclidean::naive_square(deltas[perm[2]]);
-            case euclidean::MultiplyMethod::FMA:    return euclidean::fma_square(deltas[perm[2]]);
-            case euclidean::MultiplyMethod::Ozaki:  return euclidean::ozaki_square(deltas[perm[2]]);
-        } return euclidean::naive_square(deltas[perm[2]]); }(),
+                              euclidean::SumMethod sm) {
+    auto sq = [&](int idx) -> euclidean::DoublePair {
+        const double d = deltas[perm[idx]];
+        switch (mm) {
+            case euclidean::MultiplyMethod::Naive:  return euclidean::naive_square(d);
+            case euclidean::MultiplyMethod::FMA:    return euclidean::fma_square(d);
+            case euclidean::MultiplyMethod::Ozaki:  return euclidean::ozaki_square(d);
+        }
+        return euclidean::naive_square(d);
     };
-    const std::vector<euclidean::DoublePair> terms = { sq[0], sq[1], sq[2] };
 
-    euclidean::CompensatedSum cs;
+    const std::vector<euclidean::DoublePair> terms = { sq(0), sq(1), sq(2) };
+
+    // sqrt_refined инстанцируется под конкретный Order каждой ветки
     switch (sm) {
-        case euclidean::SumMethod::Naive:      cs = euclidean::naive_sum(terms); break;
-        case euclidean::SumMethod::OgitaOishi: cs = euclidean::ogita_oishi_sum(terms); break;
-        case euclidean::SumMethod::KBN2:       cs = euclidean::kbn2_sum(terms); break;
-        case euclidean::SumMethod::KBN3:       cs = euclidean::kbn3_sum(terms); break;
-        case euclidean::SumMethod::KBN4:       cs = euclidean::kbn4_sum(terms); break;
+        case euclidean::SumMethod::Naive:
+            return euclidean::sqrt_refined(euclidean::naive_sum(terms));
+        case euclidean::SumMethod::OgitaOishi:
+            return euclidean::sqrt_refined(euclidean::ogita_oishi_sum(terms));
+        case euclidean::SumMethod::KBN2:
+            return euclidean::sqrt_refined(euclidean::kbn2_sum(terms));
+        case euclidean::SumMethod::KBN3:
+            return euclidean::sqrt_refined(euclidean::kbn3_sum(terms));
+        case euclidean::SumMethod::KBN4:
+            return euclidean::sqrt_refined(euclidean::kbn4_sum(terms));
     }
-    return euclidean::sqrt_refined(cs);
+    return euclidean::sqrt_refined(euclidean::naive_sum(terms));
 }
 
 static void test_permutation_invariance(const char* label,
