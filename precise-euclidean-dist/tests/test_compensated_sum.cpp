@@ -67,7 +67,7 @@ static void test_sum_algorithms() {
 }
 
 static void test_catastrophic_cancellation() {
-    std::printf("=== Катастрофическая отмена: ожидаем сумму квадратов = 3.0 ===\n");
+    std::printf("=== Катастрофическая сокращение: ожидаем сумму квадратов = 3.0 ===\n");
     const std::vector<double> va = {1e15, 1e15, 1e15};
     const std::vector<double> vb = {1e15 + 1.0, 1e15 + 1.0, 1e15 + 1.0};
 
