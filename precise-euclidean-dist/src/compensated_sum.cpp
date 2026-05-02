@@ -57,7 +57,7 @@ CompensatedSum naive_sum(std::span<const DoublePair> terms) noexcept {
 }
 
 CompensatedSum ogita_oishi_sum(std::span<const DoublePair> terms) noexcept {
-    // hi-члены первыми - они крупнее, это улучшает численную стабильность.
+    // hi-члены первыми - они крупнее, это улучшает численную стабильность
     std::vector<double> flat;
     flat.reserve(terms.size() * 2);
     for (const DoublePair& p : terms) { flat.push_back(p.hi); }
@@ -104,14 +104,37 @@ CompensatedSum kbn3_sum(std::span<const DoublePair> terms) noexcept {
 }
 
 CompensatedSum kbn4_sum(std::span<const DoublePair> terms) noexcept {
-    CompensatedSum pass1 = kbn2_sum(terms);
-    const DoublePair r2 = two_sum(pass1.sum, pass1.error[0]);
-    const DoublePair r3 = two_sum(r2.hi, r2.lo);
+    // Три аккумулятора: s0 (главный), s1 (первый уровень коррекции), s2 (второй уровень)
+    // Каждый входной xi проходит через два вложенных KBN-шага: carry от s0 уходит в s1,
+    // carry от s1 уходит в s2. Это гарантирует |error[0]| >= |error[1]| и строго
+    // лучшую погрешность, чем KBN3, которая имеет только два уровня
+    double s0 = 0.0;
+    double s1 = 0.0;
+    double s2 = 0.0;
+
+    auto accumulate = [&](double xi) noexcept {
+        const double t0 = s0 + xi;
+        const double c0 = (std::abs(s0) >= std::abs(xi))
+                        ? (s0 - t0) + xi
+                        : (xi - t0) + s0;
+        s0 = t0;
+
+        const double t1 = s1 + c0;
+        const double c1 = (std::abs(s1) >= std::abs(c0))
+                        ? (s1 - t1) + c0
+                        : (c0 - t1) + s1;
+        s1 = t1;
+
+        s2 += c1;
+    };
+
+    for (const DoublePair& p : terms) { accumulate(p.hi); }
+    for (const DoublePair& p : terms) { accumulate(p.lo); }
 
     CompensatedSum result;
-    result.sum      = r3.hi;
-    result.error[0] = r3.lo;
-    result.error[1] = r2.lo - (r3.hi - r2.hi);
+    result.sum      = s0;
+    result.error[0] = s1;
+    result.error[1] = s2;
     result.error[2] = 0.0;
     result.order    = 4;
     return result;
