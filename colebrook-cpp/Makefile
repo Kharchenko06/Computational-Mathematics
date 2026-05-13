@@ -27,8 +27,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
+# printf гарантирует \n на любом sh/bash/dash (в отличие от echo)
 run: all
-	@echo "100000\n0.0002\n0.05" | ./$(BIN)
+	@printf "100000\n0.0002\n0.05\n" | ./$(BIN)
 
 clean:
 	rm -rf $(OBJ_DIR) $(BIN)
