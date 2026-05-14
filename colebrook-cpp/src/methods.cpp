@@ -4,12 +4,12 @@
 
 static bool isConverged(double step, double fval, const SolverConfig& cfg)
 {
-    return std::abs(step)  < cfg.tol_step
-        && std::abs(fval)  < cfg.tol_func;
+    return std::fabs(step) < cfg.tol_step
+        && std::fabs(fval) < cfg.tol_func;
 }
 
-// Backtracking: если шаг уводит f <= 0, делим его пополам до 50 раз.
-// 50 итераций достаточно, чтобы уменьшить шаг в 2^50 ~ 1e15 раз.
+// Backtracking: если шаг уводит f <= 0, делим его пополам до 50 раз
+// 50 итераций достаточно, чтобы уменьшить шаг в 2^50 ~ 1e15 раз
 static double safeStep(double f_curr, double delta)
 {
     double f_new = f_curr + delta;
@@ -23,9 +23,8 @@ static double safeStep(double f_curr, double delta)
 }
 
 // Метод Ньютона. Квадратичная сходимость: число верных знаков
-// удваивается на каждой итерации вблизи корня.
-IterResult solveNewton(double f0,
-                       const PipeParams&   p,
+// удваивается на каждой итерации вблизи корня
+IterResult solveNewton(double f0, const PipeParams& p,
                        const SolverConfig& cfg)
 {
     IterResult res;
@@ -36,11 +35,11 @@ IterResult solveNewton(double f0,
     res.history.push_back({0, f, F(f, p), -1.0});
 
     for (int n = 1; n <= cfg.max_iter; ++n) {
-        double fval  = F(f,  p);
+        double fval  = F(f, p);
         double dfval = dF(f, p);
 
-        // При |F'| ~ 0 шаг -F/F' становится огромным.
-        if (std::abs(dfval) < 1e-30) {
+        // При |F'| ~ 0 шаг -F/F' становится огромным
+        if (std::fabs(dfval) < 1e-30) {
             res.solution    = f;
             res.final_F     = fval;
             res.final_error = 1e30;
@@ -54,18 +53,18 @@ IterResult solveNewton(double f0,
         if (f_new <= 0.0) {
             res.solution    = f;
             res.final_F     = fval;
-            res.final_error = std::abs(delta);
+            res.final_error = std::fabs(delta);
             res.iterations  = n - 1;
             return res;
         }
 
         double F_new = F(f_new, p);
-        res.history.push_back({n, f_new, F_new, std::abs(delta)});
+        res.history.push_back({n, f_new, F_new, std::fabs(delta)});
 
         if (isConverged(delta, F_new, cfg)) {
             res.solution    = f_new;
             res.final_F     = F_new;
-            res.final_error = std::abs(delta);
+            res.final_error = std::fabs(delta);
             res.iterations  = n;
             res.converged   = true;
             return res;
@@ -82,10 +81,9 @@ IterResult solveNewton(double f0,
 }
 
 // Метод Халли. Кубическая сходимость: аппроксимация Паде [1/1] для 1/F,
-// что эквивалентно учету кривизны функции через F''.
+// что эквивалентно учету кривизны функции через F''
 // Формула: delta = -F*F' / (F'^2 - 0.5*F*F'')
-IterResult solveHalley(double f0,
-                       const PipeParams&   p,
+IterResult solveHalley(double f0, const PipeParams& p,
                        const SolverConfig& cfg)
 {
     IterResult res;
@@ -103,7 +101,7 @@ IterResult solveHalley(double f0,
         // Знаменатель Халли: F'^2 - 0.5*F*F''
         double denom = dfval * dfval - 0.5 * fval * d2fval;
 
-        if (std::abs(denom) < 1e-30) {
+        if (std::fabs(denom) < 1e-30) {
             res.solution    = f;
             res.final_F     = fval;
             res.final_error = 1e30;
@@ -117,18 +115,18 @@ IterResult solveHalley(double f0,
         if (f_new <= 0.0) {
             res.solution    = f;
             res.final_F     = fval;
-            res.final_error = std::abs(delta);
+            res.final_error = std::fabs(delta);
             res.iterations  = n - 1;
             return res;
         }
 
         double F_new = F(f_new, p);
-        res.history.push_back({n, f_new, F_new, std::abs(delta)});
+        res.history.push_back({n, f_new, F_new, std::fabs(delta)});
 
         if (isConverged(delta, F_new, cfg)) {
             res.solution    = f_new;
             res.final_F     = F_new;
-            res.final_error = std::abs(delta);
+            res.final_error = std::fabs(delta);
             res.iterations  = n;
             res.converged   = true;
             return res;

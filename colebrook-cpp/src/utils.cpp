@@ -22,15 +22,15 @@ static void line(char c = '-', int n = 72)
 
 double initialGuess(const PipeParams& p)
 {
-    // Swamee-Jain 1976: явная аппроксимация Colebrook-White.
-    // 5.74 / Re^0.9 - вязкостный член; показатель 0.9 подобран эмпирически.
+    // Swamee-Jain 1976: явная аппроксимация Colebrook-White
+    // 5.74 / Re^0.9 - вязкостный член; показатель 0.9 подобран эмпирически
     double arg = p.eps / (3.7 * p.D) + 5.74 / std::pow(p.Re, 0.9);
 
     if (arg <= 0.0) return 0.02;
 
     double logVal = std::log10(arg);
 
-    if (std::abs(logVal) < 1e-30) return 0.02;
+    if (std::fabs(logVal) < 1e-30) return 0.02;
 
     double f0 = 0.25 / (logVal * logVal);
 
@@ -98,7 +98,7 @@ void printIterations(const IterResult& res)
             std::cout << std::setw(18) << std::scientific << std::setprecision(4) << s.error;
 
         std::cout << std::setw(18) << std::scientific << std::setprecision(4)
-                  << std::abs(s.F_val);
+                  << std::fabs(s.F_val);
 
         if (s.iter == 0)
             std::cout << "  <- начало" << RESET;
@@ -169,10 +169,10 @@ void printComparison(const IterResult& r1, const IterResult& r2)
               << std::setw(22) << r2.final_F << "\n";
     line('-');
 
-    double diff = std::abs(r1.solution - r2.solution);
+    double diff = std::fabs(r1.solution - r2.solution);
     std::cout << "\n  |f1* - f2*| = " << std::scientific << std::setprecision(4) << diff << "\n";
 
-    // 1e-10 -- практический порог: при разнице меньше этого значения
+    // 1e-10 - практический порог: при разнице меньше этого значения
     // оба метода считаются давшими одинаковый результат
     if (diff < 1e-10)
         std::cout << GREEN << "  Результаты совпадают.\n" << RESET;
